@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Draggable Boxes</title>
+
+  <style>
+    body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+    }
+
+    .container {
+        margin-top: 20px;
+    }
+
+    table {
+        border-collapse: collapse;
+        margin: 0 auto;
+    }
+
+    td {
+        padding: 10px;
+    }
+
+    .box {
+        width: 80px;
+        height: 80px;
+        background-color: #007bff;
+        color: white;
+        text-align: center;
+        line-height: 80px;
+        font-weight: bold;
+        cursor: pointer;
+        user-drag: none;
+        user-select: none;
+        transition: background-color 0.5s;
+    }
+
+    .box.dragging {
+        opacity: 0.7;
+    }
+
+    .box.moving {
+        transition: transform 1s;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <table>
+      <tr>
+        <td><div class="box" id="box100">100</div></td>
+        <td><div class="box" id="box200">200</div></td>
+        <td><div class="box" id="box300">300</div></td>
+      </tr>
+      <tr>
+        <td><div class="box" id="box400">400</div></td>
+        <td><div class="box" id="box500">500</div></td>
+        <td><div class="box" id="box600">600</div></td>
+      </tr>
+      <tr>
+        <td><div class="box" id="box700">700</div></td>
+        <td><div class="box" id="box800">800</div></td>
+        <td><div class="box" id="box900">900</div></td>
+      </tr>
+    </table>
+    <button id="addRowBtn">Add Row</button>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const boxes = document.querySelectorAll('.box');
+        let draggedBox = null;
+        const columnCount = 3;
+        let rowsCount = 3; // Initial number of rows in the table
+
+        boxes.forEach(box => {
+            box.addEventListener('dragstart', dragStart);
+            box.addEventListener('dragend', dragEnd);
+            box.setAttribute('draggable', 'true');
+            box.style.backgroundColor = getRandomColor();
+        });
+
+        function dragStart(e) {
+            draggedBox = this;
+            this.classList.add('dragging');
+            this.style.opacity = 0.7; // Fading the box color while dragging
+            e.dataTransfer.setData('text/plain', ''); // Required for dragging to work in some browsers
+        }
+
+        function dragEnd() {
+            this.classList.remove('dragging');
+        }
+
+
+        document.addEventListener('dragover', e => {
+            e.preventDefault();
+            const destinationBox = e.target.closest('.box');
+            if (destinationBox && destinationBox !== draggedBox) {
+            destinationBox.style.backgroundColor = '#ffa500';
+            }
+        });
+
+        document.addEventListener('dragleave', e => {
+            const destinationBox = e.target.closest('.box');
+            if (destinationBox && destinationBox !== draggedBox) {
+                destinationBox.style.backgroundColor = '#007bff';
+            }
+        });
+
+        document.addEventListener('drop', e => {
+            e.preventDefault();
+            const destinationBox = e.target.closest('.box');
+            if (destinationBox && destinationBox !== draggedBox) {
+                swapBoxes(destinationBox);
+            }
+        });
+
+        function swapBoxes(destinationBox) {
+            const tempText = destinationBox.textContent;
+            const destinationBoxBgColor = getComputedStyle(destinationBox).backgroundColor;
+            const draggedBoxBgColor = getComputedStyle(draggedBox).backgroundColor;
+
+            destinationBox.textContent = draggedBox.textContent;
+            draggedBox.textContent = tempText;
+            destinationBox.style.backgroundColor = draggedBoxBgColor;
+            draggedBox.style.backgroundColor = destinationBoxBgColor;
+            animateMove(draggedBox, destinationBox);
+        }
+
+        function animateMove(source, destination) {
+            const clone = source.cloneNode(true);
+            clone.classList.add('moving');
+            document.body.appendChild(clone);
+
+            const sourceRect = source.getBoundingClientRect();
+            const destinationRect = destination.getBoundingClientRect();
+
+            const deltaX = destinationRect.left - sourceRect.left;
+            const deltaY = destinationRect.top - sourceRect.top;
+
+            clone.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+
+            setTimeout(() => {
+                source.style.opacity = 0;
+                clone.style.transform = '';
+                setTimeout(() => {
+                    clone.remove();
+                    source.style.opacity = 1;
+                }, 1000);
+            }, 10);
+        }
+
+        const addRowBtn = document.getElementById('addRowBtn');
+        addRowBtn.addEventListener('click', () => {
+            const newRow = document.createElement('tr');
+            for (let i = 1; i <= 3; i++) {
+                const newCell = document.createElement('td');
+                const boxValue = (rowsCount * columnCount * 100 ) + (i * 100);
+                const newBox = createBox(boxValue);
+                newCell.appendChild(newBox);
+                newRow.appendChild(newCell);
+            }
+            rowsCount++;
+            const table = document.querySelector('table');
+            table.appendChild(newRow);
+        });
+
+        // Function to create a new box
+        function createBox(value) {
+            const newBox = document.createElement('div');
+            newBox.textContent = value;
+            newBox.classList.add('box');
+            newBox.setAttribute('draggable', 'true');
+            newBox.addEventListener('dragstart', dragStart);
+            newBox.addEventListener('dragend', dragEnd);
+            newBox.style.backgroundColor = getRandomColor();
+            return newBox;
+        }
+
+        // Function to generate a random color
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+    });
+
+  </script>
+</body>
+</html>
